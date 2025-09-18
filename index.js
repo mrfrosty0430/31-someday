@@ -10,13 +10,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/posts', (req, res) => {
-  const query = 'SELECT * FROM posts ORDER BY created_at DESC';
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
+  try {
+    const stmt = db.prepare('SELECT * FROM posts ORDER BY created_at DESC');
+    const posts = stmt.all();
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/posts', (req, res) => {
@@ -26,18 +26,19 @@ app.post('/posts', (req, res) => {
     return res.status(400).json({ error: 'Name and content are required' });
   }
   
-  const query = 'INSERT INTO posts (name, content) VALUES (?, ?)';
-  db.run(query, [name, content], function(err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  try {
+    const stmt = db.prepare('INSERT INTO posts (name, content) VALUES (?, ?)');
+    const result = stmt.run(name, content);
+    
     res.status(201).json({
-      id: this.lastID,
+      id: result.lastInsertRowid,
       name,
       content,
       created_at: new Date().toISOString()
     });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.use((req, res) => {
