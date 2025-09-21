@@ -41,6 +41,23 @@ app.post('/posts', (req, res) => {
   }
 });
 
+app.delete('/posts/:id', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
+    const result = stmt.run(id);
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    res.json({ message: 'Post deleted successfully', deletedId: id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
